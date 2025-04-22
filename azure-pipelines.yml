@@ -1,0 +1,51 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+  branches:
+    include:
+      - main  # Trigger pipeline only on changes to main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  JAVA_HOME: '/usr/lib/jvm/java-17-openjdk-amd64'
+  MAVEN_OPTS: '-Xmx1g'
+
+steps:
+  # Checkout your code
+  - checkout: self
+
+  # Use Java 17 (you can change version here)
+  - task: JavaToolInstaller@0
+    inputs:
+      versionSpec: '17'
+      jdkArchitecture: 'x64'
+      jdkSourceOption: 'PreInstalled'
+
+  # Build the project with Maven
+  - task: Maven@3
+    inputs:
+      mavenPomFile: 'pom.xml'
+      goals: 'clean install'
+      publishJUnitResults: true
+      testResultsFiles: '**/surefire-reports/TEST-*.xml'
+    displayName: 'Build with Maven'
+
+  # Copy JAR file to staging directory
+  - task: CopyFiles@2
+    inputs:
+      contents: '**/target/*.jar'
+      targetFolder: '$(Build.ArtifactStagingDirectory)'
+    displayName: 'Copy JAR to Artifact Staging'
+
+  # Publish build artifact for deployment
+  - task: PublishBuildArtifacts@1
+    inputs:
+      pathToPublish: '$(Build.ArtifactStagingDirectory)'
+      artifactName: 'student-data-jar'
+      publishLocation: 'Container'
+    displayName: 'Publish Build Artifact'
